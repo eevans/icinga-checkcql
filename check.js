@@ -100,6 +100,7 @@ var client = new cass.Client(options);
 var start = process.hrtime();
 var connTime = start;
 var execTime = start;
+var errorLog = [];
 
 /*
  * | return code | service state | host state
@@ -136,6 +137,7 @@ function exit(status) {
         'connect=' + ((connect < total) ? connect : 'NaN') + ';',
         'execute=' + ((execute < total) ? execute : 'NaN') + ';'
     );
+    errorLog.forEach(function(msg) { console.log(msg); });
     process.exit(status);
 }
 
@@ -148,9 +150,11 @@ client.connect_p()
         execTime = process.hrtime(execTime);
         // Query was successful, but something is otherwise wrong.
         if (r.info.queriedHost !== endpoint) {    // Error, wrong host queried!
+            errorLog.push('Queried host does not match target (a certain bug!)');
             return 3;
         }
         if (r.rows.length !== 1) {  // Error, wrong number of results!
+            errorLog.push('Query returned unexpected number of results');
             return 3;
         }
 
@@ -162,5 +166,6 @@ client.connect_p()
     exit(status);
 })
 .catch(function(e) {
+    errorLog.push('connect(): ' + e.toString());
     exit(2);
 });
